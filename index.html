@@ -1,28 +1,41 @@
+<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student File Sharing</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload</title>
 </head>
 <body>
-    <header>
-        <h1>Student File Sharing Platform</h1>
-    </header>
-    <main>
-        <div id="upload-section">
-            <h2>Upload File</h2>
-            <input type="text" id="usernameInput" placeholder="Your Name">
-            <input type="text" id="folderNameInput" placeholder="Folder Name (optional)">
-            <input type="file" id="fileInput">
-            <button id="uploadButton">Upload</button>
-        </div>
-        <div id="folders-list">
-            <h2>Folders and Files</h2>
-            <ul id="folderList"></ul>
-        </div>
-    </main>
-    <script src="script.js"></script>
+  <h1>Upload File</h1>
+  <form id="upload-form">
+    <input type="file" id="file-input" />
+    <button type="submit">Upload</button>
+  </form>
+  <script>
+    document.getElementById('upload-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const fileInput = document.getElementById('file-input');
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('File upload failed');
+        }
+
+        const result = await response.json();
+        alert(result.message);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error uploading file');
+      }
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Sharing with Google Drive</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body onload="handleClientLoad()">
+  <!-- Header -->
+  <header>
+    <h1>File Sharing with Friends</h1>
+    <nav>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">My Files</a></li>
+        <li><a href="#" onclick="createPicker()">Upload File</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <h2>Uploaded Files</h2>
+    <div id="file-list">
+      <!-- Files from Google Drive will be displayed here -->
+    </div>
+  </main>
+
+  <!-- Google API Integration Script -->
+  <script>
+    var developerKey = 'YOUR_DEVELOPER_KEY'; // Replace with your Google API Developer Key
+    var clientId = 'YOUR_CLIENT_ID'; // Replace with your Google Client ID
+    var scope = ['https://www.googleapis.com/auth/drive.file'];
+    var pickerApiLoaded = false;
+    var oauthToken;
+
+    // Load the API and make sure it is ready
+    function handleClientLoad() {
+      gapi.load('auth', {'callback': onAuthApiLoad});
+      gapi.load('picker', {'callback': onPickerApiLoad});
+    }
+
+    function onAuthApiLoad() {
+      gapi.auth.authorize(
+        {
+          'client_id': clientId,
+          'scope': scope,
+          'immediate': false
+        },
+        handleAuthResult);
+    }
+
+    function handleAuthResult(authResult) {
+      if (authResult && !authResult.error) {
+        oauthToken = authResult.access_token;
+        loadDriveFiles();
+      }
+    }
+
+    function onPickerApiLoad() {
+      pickerApiLoaded = true;
+    }
+
+    function createPicker() {
+      if (pickerApiLoaded && oauthToken) {
+        var picker = new google.picker.PickerBuilder()
+          .addView(google.picker.ViewId.DOCS)
+          .setOAuthToken(oauthToken)
+          .setDeveloperKey(developerKey)
+          .setCallback(pickerCallback)
+          .build();
+        picker.setVisible(true);
+      }
+    }
+
+    function pickerCallback(data) {
+      if (data.action == google.picker.Action.PICKED) {
+        var fileId = data.docs[0].id;
+        console.log('File ID: ' + fileId);
+        loadDriveFiles(); // Refresh the file list after upload
+      }
+    }
+
+    function loadDriveFiles() {
+      gapi.client.load('drive', 'v3', function () {
+        gapi.client.drive.files.list({
+          'pageSize': 10,
+          'fields': "nextPageToken, files(id, name, createdTime, owners)"
+        }).then(function (response) {
+          var files = response.result.files;
+          var fileList = document.getElementById('file-list');
+          fileList.innerHTML = '';
+          if (files && files.length > 0) {
+            files.forEach(function (file) {
+              var fileItem = document.createElement('div');
+              fileItem.className = 'file-item';
+              fileItem.innerHTML = `
+                <p><strong>File Name:</strong> ${file.name}</p>
+                <p><strong>Uploaded by:</strong> ${file.owners[0].displayName}</p>
+                <p><strong>Date:</strong> ${new Date(file.createdTime).toLocaleString()}</p>
+              `;
+              fileList.appendChild(fileItem);
+            });
+          } else {
+            fileList.innerHTML = '<p>No files found.</p>';
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>
